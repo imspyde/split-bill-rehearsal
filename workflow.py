@@ -1,17 +1,25 @@
+from dataclasses import dataclass
+
 from dagflows.authoring import Workflow
 from dagflows.runtime import Ctx
 
 wf = Workflow("split-bill")
 
 
-@wf.node()
-def split_bill(ctx: Ctx) -> dict:
-    bill = 2400
-    tip_percent = 10
-    people = 4
+@dataclass
+class Bill:
+    amount: float
+    tip_percent: float
+    people: int
 
-    total = bill + (bill * tip_percent / 100)
-    per_person = total / people
+
+new_bill = wf.trigger("new_bill", event=Bill)
+
+
+@wf.node(depends=[new_bill])
+def split_bill(bill: Bill, ctx: Ctx) -> dict:
+    total = bill.amount + (bill.amount * bill.tip_percent / 100)
+    per_person = total / bill.people
 
     ctx.log.info(f"Total: {total:,.0f}; per person: {per_person:,.0f}")
 
